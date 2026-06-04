@@ -1,0 +1,87 @@
+# OS metadata
+.DS_Store
+Thumbs.db
+db.lock
+*.tmp
+*.bak
+*.swp
+
+# IDEs and editors
+.idea/
+*.iml
+.vscode/
+*.sublime-project
+*.sublime-workspace
+.classpath
+.project
+.settings/
+.factorypath
+.metadata/
+
+# Node / JS (React / Next.js / React Native)
+node_modules/
+.npm/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+lerna-debug.log*
+.next/
+out/
+build/
+dist/
+.expo/
+.metro/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Android (React Native / Android Native)
+*.apk
+*.aar
+*.ap_
+*.aab
+.gradle/
+local.properties
+capture.png
+assets/captured/
+/clients/handheld-app/android/app/build/
+/clients/handheld-app/android/local.properties
+/clients/handheld-app/ios/Pods/
+/clients/handheld-app/ios/build/
+
+# Go
+bin/
+# Go test binaries
+*.test
+*.out
+# Go workspace file
+go.work
+go.work.sum
+
+# Java / Spring Boot
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/resources/gradle-wrapper.jar
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+*.class
+*.war
+*.ear
+*.jar
+*.zip
+*.tar.gz
+*.rar
+
+# Application configuration & credentials (don't commit secrets)
+*.env
+*.env.local
+*.env.development.local
+*.env.test.local
+*.env.production.local
+*.key
+*.pem
+application-local.properties
+application-local.yml
+application-local.yaml
