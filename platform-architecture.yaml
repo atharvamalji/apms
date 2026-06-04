@@ -1,0 +1,155 @@
+apms_service_architecture:
+  root: "Automated Port Management System (APMS)"
+  version: "1.0.0"
+  timestamp: "2026-06-04T15:15:00Z"
+
+  global_database_strategy:
+    engine: "PostgreSQL"
+    isolation_pattern: "Database-Per-Service (Logical Schema Separation)"
+    description: "Ensures complete microservice autonomy and loose coupling. Each transactional service owns an isolated logical PostgreSQL database, enforcing boundary lines. Cross-service data joins are strictly forbidden; service coordination occurs via gRPC or Kafka."
+
+  global_auth_strategy:
+    identity_brokerage_pattern: "Protocol Translation"
+    standards_supported: ["OAuth 2.0", "OpenID Connect (OIDC)", "SAML 2.0"]
+    description: "Standardizes internal cluster security on modern OAuth 2.0 JSON Web Tokens (JWTs). Upstream corporate SAML 2.0 XML assertions are absorbed and translated by the Identity Broker into lightweight JWTs, ensuring the Go and Spring Boot service runtimes remain decoupled from enterprise identity federation overhead."
+
+  go_microservices:
+    description: "Sub-second I/O & Continuous Telemetry Streams"
+    services:
+      apms-telemetry-ingest:
+        summary: "High-concurrency edge ingestion engine handling real-time device traffic."
+        database:
+          type: "Ephemeral / No Persistent Store"
+          description: "Maintains zero persistent relational database connections to maximize I/O throughput. Leverages an in-memory Redis cluster strictly for high-speed duplicate read filtering (sliding-window debouncing)."
+        responsibilities:
+          - "Exposes high-speed REST endpoints for Zebra handheld scans"
+          - "Maintains persistent TCP socket loops to digital weight indicators"
+          - "Parses real-time continuous environmental/belt scale data streams"
+          - "Deserializes edge data payloads and pumps clean JSON events to Kafka"
+        entities_managed:
+          - "ANPR/RFID Stream Event"
+          - "Scale Stability Event"
+          - "Belt Scale Telemetry Stream"
+
+      apms-device-manager:
+        summary: "Network health monitoring service tracking physical terminal infrastructure uptime."
+        database:
+          type: "PostgreSQL (Logical DB: apms_device_health)"
+          description: "Stores static device configurations, active cluster topologies, and tracking states."
+        responsibilities:
+          - "Tracks ping heartbeats of physical Zebra devices and edge hardware"
+          - "Raises immediate system warnings if a checkpoint node drops offline"
+        entities_managed:
+          - "Virtual Edge Connectivity Matrix"
+
+  spring_boot_microservices:
+    description: "Heavy Transactional Boundaries & Business Logic"
+    services:
+      apms-auth-broker:
+        summary: "Centralized IAM and single sign-on (SSO) gateway executing multi-protocol identity management."
+        database:
+          type: "PostgreSQL (Logical DB: apms_identity_broker)"
+          description: "Stores mapped user credentials, OAuth client scopes, OIDC session keys, and SAML metadata mappings (such as tenant IdP endpoints and X.509 public certificates)."
+        responsibilities:
+          - "Brokers SAML 2.0 XML assertions from enterprise port authorities and matches them to active multi-tenant configurations"
+          - "Coordinates native OAuth 2.0 + PKCE token distribution workflows directly for mobile Zebra handheld applications"
+          - "Signs and distributes public JWKS keys allowing downstream microservices to independently decrypt and verify access tokens in-memory"
+        entities_managed:
+          - "Tenant Auth Config"
+          - "User Directory Mapping"
+          - "Access / Refresh Token Sessions"
+
+      apms-infrastructure-service:
+        summary: "Multi-tenant directory managing physical topology, access controls, and terminal configurations."
+        database:
+          type: "PostgreSQL (Logical DB: apms_infrastructure_core)"
+          description: "Serves as the master relational store for structural port topologies. Highly optimized for recursive hierarchy queries (Tenant -> Port -> Terminal -> Sector)."
+        responsibilities:
+          - "Enforces multi-tenant data isolation rules across organizational boundaries"
+          - "Serves as the master directory for the physical layouts of all port terminals"
+        entities_managed:
+          - "Organization / Tenant"
+          - "Port Node"
+          - "Terminal Node"
+          - "Yard Sector / Silo Allocation Ledger"
+
+      apms-workflow-engine:
+        summary: "State-machine orchestrator validating vehicle milestone progression and enforcing gate interlocks."
+        database:
+          type: "PostgreSQL (Logical DB: apms_workflow_runtime)"
+          description: "Manages live operational execution states. Highly indexed on 'assigned_rfid_tag' and 'trip_ticket_id' to guarantee sub-second transaction validation during operator trigger pulls."
+        responsibilities:
+          - "Coordinates state-machine progression for all active vehicles"
+          - "Evaluates sequential milestone verification upon operator scan actions"
+          - "Intercepts sequence anomalies and returns validation feedback to Zebra UIs"
+        entities_managed:
+          - "Operational Workflow Profile"
+          - "Workflow Definition"
+          - "Workflow Milestone"
+          - "Trip Assignment (Live Tracker)"
+          - "Trip State Transition (Audit Ledger)"
+
+      apms-cargo-ledger:
+        summary: "Inventory ledger computing volumetric weights, material deltas, and stockpile quality assays."
+        database:
+          type: "PostgreSQL (Logical DB: apms_cargo_inventory)"
+          description: "Tracks continuous stock metrics. Utilizes strict ACID transaction isolation levels to handle concurrent updates to stockpile volumes when multiple weighbridges compute net weights simultaneously."
+        responsibilities:
+          - "Runs business logic for materials (Gross - Tare weight inventory deltas)"
+          - "Monitors material quality assay certifications"
+          - "Adjusts real-time continuous volumetric balances inside active stockpiles"
+        entities_managed:
+          - "Trip Master"
+          - "Cargo Master"
+          - "Cargo Type Metadata Schema"
+          - "Material Quality Profile"
+          - "Stockpile"
+          - "Gate Transaction"
+          - "Weighbridge Log"
+          - "Material Handling Equipment (MHE) Log"
+
+      apms-marine-service:
+        summary: "Vessel traffic management service managing berthing logs and laytime logistics."
+        database:
+          type: "PostgreSQL (Logical DB: apms_marine_ops)"
+          description: "Stores shipping itineraries, contract rules, and historic event logs required for auditing legal maritime timelines."
+        responsibilities:
+          - "Coordinates deep-water vessel itineraries, arrivals, and berthing slots"
+          - "Automates Statement of Facts timelines for maritime demurrage legalities"
+        entities_managed:
+          - "Vessel Master"
+          - "Vessel Diary"
+          - "Laytime Ledger"
+          - "Statement of Facts (SoF)"
+
+  integration_layer:
+    description: "Decoupled Data Federation & Migration Systems"
+    services:
+      apms-data-migration-hub:
+        runtime: "Spring Boot"
+        summary: "Extensible ETL and real-time synchronization gateway for importing historical legacy port registries and dynamically expanding client data points."
+        database:
+          type: "PostgreSQL (Logical DB: apms_migration_metadata)"
+          description: "Stores source-to-target field maps, sync delta watermark timestamps, batch job status logs, and dynamic JSON schema validations for client-side data extensions."
+        responsibilities:
+          - "Executes high-throughput historical data migration jobs from legacy mainframes (e.g., historical Cargo, Vessel, and Operational ledgers) into the APMS cluster"
+          - "Provides a polymorphic schema validation layer using PostgreSQL JSONB to store and audit custom, client-defined metadata properties without altering the core database structure"
+          - "Coordinates dual-write sync pipelines and transforms relational datasets into real-time transactional streams via Kafka event routing"
+        entities_managed:
+          - "Migration Job Manifest"
+          - "Field Mapping Dictionary"
+          - "Dynamic Client Schema Extension Registry"
+          - "Sync Conflict / Exception Log"
+
+      apms-iportman-sync:
+        runtime: "Spring Boot"
+        summary: "Asynchronous outbound data relay mapping validated APMS transactions safely into legacy Oracle DBs."
+        database:
+          type: "Database-less Worker Engine"
+          description: "Does not own or manage a local database. Maintains an isolated connection to the legacy target system (Oracle iPortman Database) to stream finalized, flattened transaction rows."
+        responsibilities:
+          - "Asynchronously consumes finalized 'COMPLETED' trip event streams from Kafka"
+          - "Transforms multi-tenant APMS schemas into legacy Oracle database rows"
+          - "Guarantees delivery via a retry ring engine (exponential backoff + Jitter + DLQ)"
+        entities_managed:
+          - "None - Database-less data transformer/relay worker"
